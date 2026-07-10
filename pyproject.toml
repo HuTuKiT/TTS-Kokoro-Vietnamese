@@ -28,6 +28,13 @@ onnx = [
     "onnx",
     "onnxruntime",
 ]
+serve = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "onnx",
+    "onnxruntime",
+]
 training = [
     "accelerate",
     "einops",
@@ -51,6 +58,7 @@ kokoro-vietnamese = "kokoro_vietnamese.cli:main"
 kokoro-vietnamese-export-onnx = "kokoro_vietnamese.export_onnx:main"
 kokoro-vietnamese-gradio = "kokoro_vietnamese.gradio_app:main"
 kokoro-vietnamese-onnx = "kokoro_vietnamese.onnx_cli:main"
+kokoro-vietnamese-serve = "kokoro_vietnamese.serve:main"
 
 [project.urls]
 Homepage = "https://github.com/iamdinhthuan/Kokoro-Vietnamese"

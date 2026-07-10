@@ -30,7 +30,6 @@ def choose_providers(device: str) -> list[str]:
         return ['CUDAExecutionProvider', 'CPUExecutionProvider']
     return ['CPUExecutionProvider']
 
-
 class KokoroVietnameseONNX:
     def __init__(
         self,
@@ -43,16 +42,51 @@ class KokoroVietnameseONNX:
         device: str = 'cpu',
     ) -> None:
         import onnxruntime as ort
-        import torch
 
-        self.onnx_path = _download_or_resolve(repo_id, DEFAULT_ONNX_FILE, onnx_path)
-        voicepack_filename = resolve_voicepack_filename(voice, voicepack_path)
-        self.voicepack_path = _download_or_resolve(repo_id, DEFAULT_VOICEPACK_FILE, voicepack_filename)
-        self.config_path = _download_or_resolve(repo_id, DEFAULT_CONFIG_FILE, config_path)
+        pkg_root = Path(__file__).parent.parent.parent
+        local_models_dir = pkg_root / 'models'
+
+        # Resolve ONNX path
+        if onnx_path:
+            self.onnx_path = Path(onnx_path)
+        elif (local_models_dir / DEFAULT_ONNX_FILE).exists():
+            self.onnx_path = local_models_dir / DEFAULT_ONNX_FILE
+        else:
+            self.onnx_path = _download_or_resolve(repo_id, DEFAULT_ONNX_FILE, onnx_path)
+
+        # Resolve Config path
+        if config_path:
+            self.config_path = Path(config_path)
+        elif (local_models_dir / DEFAULT_CONFIG_FILE).exists():
+            self.config_path = local_models_dir / DEFAULT_CONFIG_FILE
+        else:
+            self.config_path = _download_or_resolve(repo_id, DEFAULT_CONFIG_FILE, config_path)
 
         self.config = load_config(self.config_path)
         self.context_length = self.config['plbert']['max_position_embeddings']
-        self.voicepack = torch.load(self.voicepack_path, map_location='cpu', weights_only=True)
+
+        # Resolve Voicepack path
+        voicepack_filename = resolve_voicepack_filename(voice, voicepack_path)
+        
+        # Check if local .npy voicepack exists
+        local_npy_path = (local_models_dir / voicepack_filename).with_suffix('.npy')
+        if local_npy_path.exists():
+            self.voicepack_path = local_npy_path
+            self.voicepack = np.load(local_npy_path)
+        else:
+            if voicepack_path:
+                self.voicepack_path = Path(voicepack_path)
+            else:
+                self.voicepack_path = _download_or_resolve(repo_id, DEFAULT_VOICEPACK_FILE, voicepack_filename)
+            
+            # Load voicepack: try numpy (.npy) first, fallback to torch (.pt)
+            npy_path = self.voicepack_path.with_suffix('.npy')
+            if npy_path.exists():
+                self.voicepack = np.load(npy_path)
+            else:
+                import torch
+                self.voicepack = torch.load(self.voicepack_path, map_location='cpu', weights_only=True)
+
         self.session = ort.InferenceSession(str(self.onnx_path), providers=choose_providers(device))
 
     def synthesize(
