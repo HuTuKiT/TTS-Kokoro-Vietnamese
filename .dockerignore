@@ -1,0 +1,33 @@
+# Ignore Git repository metadata
+.git
+.gitignore
+
+# Ignore training code and datasets
+training/
+StyleTTS2/
+configs/
+TRAINING.md
+improve_phoneme.md
+
+# Ignore tests
+tests/
+
+# Ignore local PyTorch implementation folder (since we only run ONNX)
+kokoro/
+
+# Ignore scripts used only on host
+convert_voices_local.py
+convert_voices.py
+
+# Ignore markdown documents (excluding README.md/LICENSE which are required by the build backend)
+DOCKER.md
+
+# Ignore python caching and virtual environment files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+env/

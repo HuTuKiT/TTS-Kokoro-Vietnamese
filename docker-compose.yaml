@@ -1,0 +1,56 @@
+services:
+  kokoro-vietnamese:
+    build:
+      context: .
+    ports:
+      - "7888:7888"
+    restart: unless-stopped
+
+    # Resource limits to prevent memory/CPU starvation
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+
+    # Healthcheck to let Docker know when the model has finished loading
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7888/v1/health')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+    # Log management
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  kokoro-gateway:
+    build:
+      context: ./kokoro-gateway
+    environment:
+      # Internal call within Docker compose network
+      TTS_URL: "http://kokoro-vietnamese:7888/v1/tts"
+      # Public URL for downloading generated audio files
+      BASE_PUBLIC_URL: "http://127.0.0.1:7899"
+      OUTPUT_DIR: "/data/out"
+      CALLBACK_TIMEOUT_SEC: "10"
+      # Maximum number of concurrent jobs
+      MAX_CONCURRENCY: "5"
+      # Maximum queue size
+      QUEUE_MAXSIZE: "500"
+    ports:
+      - "7899:7899"
+    volumes:
+      - tts_outputs:/data/out
+    depends_on:
+      kokoro-vietnamese:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  tts_outputs:
