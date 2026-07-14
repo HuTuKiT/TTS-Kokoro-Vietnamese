@@ -194,7 +194,7 @@ async def gateway_tts(req: GatewayTTSRequest):
 
     job_id = uuid.uuid4().hex
     filename, _ = _output_paths(req.user_id, job_id, req.response_format)
-    output_url = f"{BASE_PUBLIC_URL}/text2speech/{req.user_id}/{filename}"
+    output_url = f"{BASE_PUBLIC_URL}/{req.user_id}/{filename}"
 
     job: Job = {
         "job_id": job_id,

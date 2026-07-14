@@ -113,14 +113,20 @@ async def tts_endpoint(req: TTSRequest):
         raise HTTPException(status_code=500, detail="TTS Model is not loaded")
     
     try:
+        print(f"[TTS Request] Voice: {req.voice}, Speed: {req.speed}, Text length: {len(req.text)}")
         voicepack = get_voicepack(req.voice)
+        print(f"[TTS Request] Voicepack loaded: {type(voicepack)}, shape: {voicepack.shape if hasattr(voicepack, 'shape') else 'N/A'}")
         audio, phonemes = synthesize_with_voicepack_onnx(
             tts=tts_instance,
             voicepack=voicepack,
             text=req.text,
             speed=req.speed,
         )
+        print(f"[TTS Request] Synthesis completed. Audio shape: {audio.shape}")
     except Exception as e:
+        import traceback
+        error_msg = traceback.format_exc()
+        print(f"[TTS Error] {error_msg}")
         raise HTTPException(status_code=500, detail=f"Synthesis failed: {str(e)}")
 
     if len(audio) == 0:
