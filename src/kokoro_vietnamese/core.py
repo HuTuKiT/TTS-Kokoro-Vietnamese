@@ -34,25 +34,68 @@ VOICES = {
 }
 
 
-def split_text(text: str) -> list[str]:
+def split_text(text: str, max_length: int = 150) -> list[str]:
+    """Split text into chunks that won't exceed phoneme limits.
+    
+    Args:
+        text: Input text to split
+        max_length: Approximate character limit per chunk to avoid phoneme overflow
+    
+    Returns:
+        List of text chunks safe for phoneme conversion
+    """
     normalized = re.sub(r'\s+', ' ', text.strip())
     if not normalized:
         return []
 
     chunks: list[str] = []
     start = 0
-    for match in re.finditer(r'[.!?…]+(?:["”’)]*)', normalized):
+    
+    # First split by sentences
+    for match in re.finditer(r'[.!?…]+(?:[""\']*)', normalized):
         end = match.end()
         if end < len(normalized) and not normalized[end].isspace():
             continue
         chunk = normalized[start:end].strip()
         if chunk:
-            chunks.append(chunk)
+            # Further split long sentences by commas/semicolons
+            chunks.extend(_split_long_sentence(chunk, max_length))
         start = end
 
     remainder = normalized[start:].strip()
     if remainder:
-        chunks.append(remainder)
+        chunks.extend(_split_long_sentence(remainder, max_length))
+    
+    return chunks
+
+
+def _split_long_sentence(sentence: str, max_length: int = 150) -> list[str]:
+    """Split a single sentence by clauses if it's too long."""
+    if len(sentence) <= max_length:
+        return [sentence]
+    
+    # Try splitting by commas and semicolons
+    parts = re.split(r'([,;])', sentence)
+    
+    chunks = []
+    current_chunk = ""
+    
+    for part in parts:
+        if not part or part in ',;':
+            current_chunk += part
+            continue
+        
+        test_chunk = (current_chunk + part).strip()
+        if len(test_chunk) <= max_length:
+            current_chunk += part
+        else:
+            if current_chunk.strip():
+                chunks.append(current_chunk.strip())
+            current_chunk = part
+    
+    if current_chunk.strip():
+        chunks.append(current_chunk.strip())
+    
     return chunks
 
 
